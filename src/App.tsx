@@ -159,6 +159,12 @@ export default function App() {
         <p>Welcome Nama Bhiksha into your home. Choose a day for a 30-minute prayer and chanting session.</p>
         <div className="hero-meta"><span><CalendarDays size={16} /> Oct 25 – Nov 24</span><span><Clock3 size={16} /> One family each day</span></div>
       </div>
+      <div className="mantra-widget" aria-label="Hare Rama Mahamantra">
+        <p>Hare Rama Hare Rama</p>
+        <p>Rama Rama Hare Hare</p>
+        <p>Hare Krishna Hare Krishna</p>
+        <p>Krishna Krishna Hare Hare</p>
+      </div>
     </section>
 
     <section className="booking-area" id="book">
