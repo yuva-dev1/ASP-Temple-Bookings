@@ -162,15 +162,19 @@ export default function App() {
       <div className="hero-art" role="img" aria-label="The Mahamantra flowing like music toward a hand receiving a coin">
         <svg className="mantra-art" viewBox="0 0 600 264" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <defs>
-            <path id="mantra-path-one" d="M 45 77 C 120 20, 235 29, 319 81" />
-            <path id="mantra-path-two" d="M 38 119 C 136 70, 236 77, 329 122" />
+            <path id="mantra-path-one" d="M 32 58 C 120 45, 218 49, 316 58" />
+            <path id="mantra-path-two" d="M 32 84 C 120 72, 218 76, 316 84" />
+            <path id="mantra-path-three" d="M 32 110 C 120 98, 218 102, 316 110" />
+            <path id="mantra-path-four" d="M 32 136 C 120 124, 218 128, 316 136" />
             <linearGradient id="hand-tone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#b77c57" /><stop offset="1" stopColor="#986344" /></linearGradient>
           </defs>
           <circle className="art-orbit" cx="300" cy="131" r="104" />
           <circle className="art-orbit inner" cx="300" cy="131" r="78" />
-          <path className="music-staff" d="M39 83 C126 23 230 34 320 85 M40 126 C134 78 236 81 328 126" />
-          <text className="mantra-copy"><textPath href="#mantra-path-one">Hare Rama Hare Rama Rama Rama Hare Hare</textPath></text>
-          <text className="mantra-copy second"><textPath href="#mantra-path-two">Hare Krishna Hare Krishna Krishna Krishna Hare Hare</textPath></text>
+          <path className="music-staff" d="M31 60 C120 47 218 51 317 60 M31 86 C120 73 218 77 317 86 M31 112 C120 99 218 103 317 112 M31 138 C120 125 218 129 317 138" />
+          <text className="mantra-copy"><textPath href="#mantra-path-one">Hare Rama Hare Rama</textPath></text>
+          <text className="mantra-copy second"><textPath href="#mantra-path-two">Rama Rama Hare Hare</textPath></text>
+          <text className="mantra-copy"><textPath href="#mantra-path-three">Hare Krishna Hare Krishna</textPath></text>
+          <text className="mantra-copy second"><textPath href="#mantra-path-four">Krishna Krishna Hare Hare</textPath></text>
           <text className="music-note" x="70" y="162">♪</text><text className="music-note note-two" x="289" y="57">♫</text>
           <ellipse className="coin-shadow" cx="353" cy="151" rx="23" ry="6" />
           <ellipse className="offering-coin" cx="353" cy="132" rx="24" ry="11" transform="rotate(-28 353 132)" />
