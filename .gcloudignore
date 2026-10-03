@@ -1,4 +1,7 @@
 #!include:.gitignore
+/.git/
+/.gcloudignore
+/.gitignore
 .playwright-cli/
 /code-source.html
 /code-source.txt
