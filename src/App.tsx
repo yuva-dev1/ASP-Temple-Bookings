@@ -87,7 +87,7 @@ export default function App() {
   const isOpen = (date: string) => available.get(date) ?? true;
 
   return <main>
-    <header className="topbar"><a className="brand" href="/" aria-label="ASP Temple home"><span className="brand-mark"><Leaf size={19} /></span><span>ASP <i>Temple</i></span></a><a className="top-contact" href="tel:+18325151251"><Phone size={15} /> Questions? <b>Sriram</b></a></header>
+    <header className="topbar"><a className="brand" href="/" aria-label="ASP Temple home"><span className="brand-mark"><Leaf size={19} /></span><span>ASP <i>Temple</i></span></a><div className="top-contact"><Phone size={19} /><span>Questions? Contact <b>Sriram</b> at <strong>832-515-1251</strong></span></div></header>
     <section className="hero">
       <div className="hero-copy">
         <div className="season-tag"><Sparkles size={14} /> A Kartik Maas offering</div>
@@ -122,6 +122,6 @@ export default function App() {
     </section>
 
     <aside className="exception-note"><div className="note-icon"><Clock3 size={18} /></div><div><b>A few special times</b><p>Most days: 4:00–4:30 pm · Mondays: 7:15–7:45 pm · Saturday, Nov 7: 10:00–10:30 am</p></div></aside>
-    <footer><span>With devotion, from ASP Temple <Heart size={13} fill="currentColor" /></span><a href="tel:+18325151251">Questions? Sriram · 832-515-1251</a></footer>
+    <footer><span>With devotion, from ASP Temple <Heart size={16} fill="currentColor" /></span><span className="footer-contact">Questions? Contact Sriram at <strong>832-515-1251</strong></span></footer>
   </main>;
 }
