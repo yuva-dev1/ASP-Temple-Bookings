@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, CalendarDays, Check, Clock3, Heart, Leaf, LoaderCircle, Mail, MapPin, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
-import type { Booking, Slot } from './types';
+import type { Booking, BookingDetails, Slot } from './types';
 
 type ApiResult = { ok: boolean; error?: string; slots?: Slot[]; booking?: Booking; confirmationId?: string; message?: string };
 const start = new Date(2026, 9, 25);
 const end = new Date(2026, 10, 24);
 const initialConfirmationId = new URLSearchParams(window.location.search).get('confirmationId') || '';
+type Page = 'calendar' | 'booking' | 'confirmation';
+const routePage = (pathname: string): Page => pathname.replace(/\/$/, '') === '/booking' ? 'booking' : pathname.replace(/\/$/, '') === '/confirmation' ? 'confirmation' : 'calendar';
+const emptyForm: BookingDetails = { name: '', email: '', phone: '', street: '', city: '', state: 'GA', zipCode: '', fullAddress: '', occasion: '', additionalNotes: '', date: '', time: '' };
+function readConfirmedBooking(): Booking | null {
+  try { return (window.history.state?.booking as Booking | undefined) || JSON.parse(sessionStorage.getItem('confirmedBooking') || 'null') as Booking | null; }
+  catch { return null; }
+}
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const fromISO = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -29,18 +36,28 @@ async function request(url: string, data?: unknown): Promise<ApiResult> {
 }
 
 export default function App() {
+  const [page, setPage] = useState<Page>(() => routePage(window.location.pathname));
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState(() => new URLSearchParams(window.location.search).get('date') || '');
   const [mode, setMode] = useState<'book' | 'manage'>(initialConfirmationId ? 'manage' : 'book');
   const [lookup, setLookup] = useState({ confirmationId: initialConfirmationId, email: '' });
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '' });
+  const [form, setForm] = useState<BookingDetails>(emptyForm);
+  const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(readConfirmedBooking);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const available = useMemo(() => new Map(slots.map(s => [s.date, s.available])), [slots]);
+
+  const navigate = (path: string, nextBooking?: Booking) => {
+    window.history.pushState(nextBooking ? { booking: nextBooking } : {}, '', path);
+    setPage(routePage(window.location.pathname));
+    if (nextBooking) setConfirmedBooking(nextBooking);
+    setSelected(new URLSearchParams(window.location.search).get('date') || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const refresh = async () => {
     setLoadError('');
@@ -50,20 +67,34 @@ export default function App() {
   };
   useEffect(() => { void refresh(); }, []);
 
-  const reset = () => { setSuccess(''); setError(''); setBooking(null); setLookup({ confirmationId: '', email: '' }); setMode('book'); };
+  useEffect(() => {
+    const syncRoute = () => {
+      setPage(routePage(window.location.pathname));
+      setSelected(new URLSearchParams(window.location.search).get('date') || '');
+      setConfirmedBooking(readConfirmedBooking());
+    };
+    window.addEventListener('popstate', syncRoute);
+    return () => window.removeEventListener('popstate', syncRoute);
+  }, []);
+
   const submitBook = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError(''); setSuccess('');
     try {
-      const result = await request('/api/book', { ...form, date: selected });
-      setSuccess(`Your Nama Bhiksha is reserved for ${fmt(selected)} at ${slotTime(selected)}. A confirmation email is on its way.`);
-      setBooking({ confirmationId: result.confirmationId || '', ...form, date: selected, time: slotTime(selected), status: 'Active' });
+      const phone = form.phone.replace(/\D/g, '');
+      if (phone.length !== 10) throw new Error('Enter a 10-digit phone number.');
+      const details = { ...form, phone, email: form.email.trim(), fullAddress: `${form.street.trim()}, ${form.city.trim()}, ${form.state} ${form.zipCode.trim()}`, date: selected, time: slotTime(selected) };
+      const result = await request('/api/book', details);
+      const saved: Booking = { ...(result.booking || details), confirmationId: result.confirmationId || result.booking?.confirmationId || '', status: 'Active' };
+      sessionStorage.setItem('confirmedBooking', JSON.stringify(saved));
+      setBooking(saved);
       await refresh();
+      navigate('/confirmation', saved);
     } catch (err) { setError(err instanceof Error ? err.message : 'We could not save your booking.'); await refresh(); }
     finally { setBusy(false); }
   };
   const findBooking = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError(''); setSuccess('');
-    try { const result = await request('/api/lookup', lookup); setBooking(result.booking || null); if (result.booking) setForm({ name: result.booking.name, email: result.booking.email, phone: result.booking.phone }); }
+    try { const result = await request('/api/lookup', lookup); setBooking(result.booking || null); if (result.booking) setForm({ ...result.booking }); }
     catch (err) { setError(err instanceof Error ? err.message : 'We could not find that booking.'); }
     finally { setBusy(false); }
   };
@@ -85,9 +116,42 @@ export default function App() {
   };
   const slotTime = (date: string) => allDays.find(d => d.date === date)?.time || '';
   const isOpen = (date: string) => available.get(date) ?? true;
+  const header = <header className="topbar"><a className="brand" href="/" aria-label="ASP Temple home"><span className="brand-mark"><Leaf size={19} /></span><span>ASP <i>Temple</i></span></a><div className="top-contact"><Phone size={19} /><span>Questions? Contact <b>Sriram</b> at <strong>832-515-1251</strong></span></div></header>;
+  const footer = <footer><span>With devotion, from ASP Temple <Heart size={16} fill="currentColor" /></span><span className="footer-contact">Questions? Contact Sriram at <strong>832-515-1251</strong></span></footer>;
+
+  if (page === 'booking') {
+    const dayExists = allDays.some(day => day.date === selected);
+    const dateTaken = !loading && dayExists && !isOpen(selected);
+    return <main>{header}<section className="step-page"><div className="step-shell"><button className="back-link" type="button" onClick={() => navigate('/')}>← Back to available days</button><div className="step-heading"><span className="section-number">02 / YOUR DETAILS</span><h1>Book your Nama Bhiksha</h1><p>Share the details our home-program team needs to prepare for your visit.</p></div>
+      {!dayExists ? <div className="inline-alert error">Choose an available date from the calendar to continue.<button className="button dark" onClick={() => navigate('/')}>View available days</button></div> : dateTaken ? <div className="inline-alert error">That day was just booked. Please choose another available date.<button className="button dark" onClick={() => navigate('/')}>View available days</button></div> : <>
+        <div className="booking-summary"><div><span className="summary-label">YOUR SELECTED DAY</span><strong>{fmt(selected)}</strong></div><div><span className="summary-label">SESSION TIME</span><strong>{slotTime(selected)}</strong></div><span className="summary-duration">30 minutes</span></div>
+        <form className="booking-form step-form" onSubmit={submitBook}>
+          <div className="form-intro"><h2>Host and contact information</h2><p>Fields marked * are required. We’ll send your confirmation and change ID by email.</p></div>
+          <div className="form-grid step-form-grid">
+            <label>Full name *<input required maxLength={100} autoComplete="name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
+            <label>Email address *<input required type="email" maxLength={180} autoComplete="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></label>
+            <label>Phone number *<input required type="tel" inputMode="numeric" maxLength={14} autoComplete="tel" placeholder="10-digit phone number" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} /></label>
+            <label className="span-two">Street address *<input required maxLength={200} autoComplete="street-address" placeholder="123 Bhakti Way" value={form.street} onChange={e => setForm({ ...form, street: e.target.value })} /></label>
+            <label>City *<input required maxLength={100} autoComplete="address-level2" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} /></label>
+            <label>State *<select required autoComplete="address-level1" value={form.state} onChange={e => setForm({ ...form, state: e.target.value })}>{['GA','AL','TN','NC','SC','FL'].map(state => <option key={state}>{state}</option>)}</select></label>
+            <label>ZIP code *<input required maxLength={10} autoComplete="postal-code" value={form.zipCode} onChange={e => setForm({ ...form, zipCode: e.target.value })} /></label>
+            <label className="span-two">Occasion / reason *<input required maxLength={120} placeholder="e.g. Housewarming, birthday, or prayer" value={form.occasion} onChange={e => setForm({ ...form, occasion: e.target.value })} /></label>
+            <label className="span-three">Additional notes<textarea rows={4} maxLength={2000} placeholder="Any special requests or information for the organizers?" value={form.additionalNotes} onChange={e => setForm({ ...form, additionalNotes: e.target.value })} /></label>
+          </div>
+          {error && <div className="inline-alert error" role="alert">{error}</div>}
+          <div className="form-footer step-form-footer"><span><ShieldCheck size={16} /> Your information is used to coordinate this booking.</span><button className="button dark" disabled={busy}>{busy ? 'Submitting…' : <>Confirm booking <ArrowRight size={17} /></>}</button></div>
+        </form>
+      </>}</div></section>{footer}</main>;
+  }
+
+  if (page === 'confirmation') {
+    return <main>{header}<section className="step-page confirmation-page"><div className="step-shell"><div className="confirmation-banner"><span className="confirmation-check"><Check size={26} /></span><span className="section-number">03 / CONFIRMED</span><h1>Your Nama Bhiksha is booked</h1><p>A confirmation email with your change ID is on its way.</p></div>
+      {confirmedBooking ? <article className="confirmation-card"><div className="confirmation-id"><span>CONFIRMATION ID</span><strong>{confirmedBooking.confirmationId}</strong></div><div className="confirmation-details"><div><span>Date</span><strong>{fmt(confirmedBooking.date)}</strong></div><div><span>Time</span><strong>{confirmedBooking.time}</strong></div><div><span>Host</span><strong>{confirmedBooking.name}</strong></div><div><span>Email</span><strong>{confirmedBooking.email}</strong></div><div><span>Phone</span><strong>{confirmedBooking.phone}</strong></div><div><span>Home address</span><strong>{confirmedBooking.fullAddress}</strong></div><div><span>Occasion / reason</span><strong>{confirmedBooking.occasion}</strong></div>{confirmedBooking.additionalNotes && <div className="notes-detail"><span>Additional notes</span><strong>{confirmedBooking.additionalNotes}</strong></div>}</div><p className="confirmation-help">Keep your confirmation ID and booking email to manage your reservation. For questions, contact Sriram at <strong>832-515-1251</strong>.</p></article> : <div className="inline-alert">Confirmation details aren’t available in this browser. Check your email for your confirmation ID.</div>}
+      <button className="button dark confirmation-home" onClick={() => { setConfirmedBooking(null); sessionStorage.removeItem('confirmedBooking'); navigate('/'); }}>Return to available days</button></div></section>{footer}</main>;
+  }
 
   return <main>
-    <header className="topbar"><a className="brand" href="/" aria-label="ASP Temple home"><span className="brand-mark"><Leaf size={19} /></span><span>ASP <i>Temple</i></span></a><div className="top-contact"><Phone size={19} /><span>Questions? Contact <b>Sriram</b> at <strong>832-515-1251</strong></span></div></header>
+    {header}
     <section className="hero">
       <div className="hero-copy">
         <div className="season-tag"><Sparkles size={14} /> A Kartik Maas offering</div>
@@ -110,18 +174,12 @@ export default function App() {
       {mode === 'manage' && error && <div className="inline-alert error"><span>{error}</span><button aria-label="Dismiss" onClick={() => setError('')}><X size={16} /></button></div>}
 
       {mode === 'book' && <>
-        {loading ? <div className="calendar-loading"><LoaderCircle className="spin" size={20} /> Checking available dates…</div> : <div className="months">{months.map(month => <article className="month" key={month.title}><h3>{month.title}</h3><div className="calendar-grid calendar-weekdays">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{month.days.map((day, index) => { const weekday = fromISO(day.date).getDay(); return <div key={day.date} className={`day-wrap ${index === 0 ? `offset-${weekday}` : ''}`}><button className={`day ${selected === day.date ? 'selected' : ''} ${!isOpen(day.date) ? 'unavailable' : ''}`} disabled={!isOpen(day.date)} onClick={() => { setSelected(day.date); setError(''); setSuccess(''); }} aria-label={`${fmt(day.date)}, ${isOpen(day.date) ? 'available' : 'unavailable'}`}><b>{fromISO(day.date).getDate()}</b><small>{isOpen(day.date) ? 'Open' : 'Taken'}</small></button></div>; })}</div></article>)}</div>}
+        {loading ? <div className="calendar-loading"><LoaderCircle className="spin" size={20} /> Checking available dates…</div> : <div className="months">{months.map(month => <article className="month" key={month.title}><h3>{month.title}</h3><div className="calendar-grid calendar-weekdays">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{month.days.map((day, index) => { const weekday = fromISO(day.date).getDay(); return <div key={day.date} className={`day-wrap ${index === 0 ? `offset-${weekday}` : ''}`}><button className={`day ${selected === day.date ? 'selected' : ''} ${!isOpen(day.date) ? 'unavailable' : ''}`} disabled={!isOpen(day.date)} onClick={() => { setError(''); setSuccess(''); navigate(`/booking?date=${day.date}`); }} aria-label={`${fmt(day.date)}, ${isOpen(day.date) ? 'available' : 'unavailable'}`}><b>{fromISO(day.date).getDate()}</b><small>{isOpen(day.date) ? 'Open' : 'Taken'}</small></button></div>; })}</div></article>)}</div>}
         {loadError && <div className="inline-alert error"><span>{loadError}</span><button onClick={() => { setLoading(true); void refresh(); }}>Try again</button></div>}
-        {selected && <div className="selected-slot"><span className="slot-calendar"><CalendarDays size={20} /></span><div><small>YOUR SELECTED DATE</small><b>{fmt(selected)}</b></div><span className="slot-time">{slotTime(selected)}</span><Check className="slot-check" size={19} /></div>}
-
-        {success && <div className="inline-alert success"><Check size={18} /><div><b>{success}</b>{booking?.confirmationId && <p>Your confirmation ID: <strong>{booking.confirmationId}</strong> · Save this ID to edit or cancel later.</p>}</div><button aria-label="Dismiss" onClick={reset}><X size={16} /></button></div>}
-        {error && <div className="inline-alert error"><span>{error}</span><button aria-label="Dismiss" onClick={() => setError('')}><X size={16} /></button></div>}
-
-        {selected && !booking && <form className="booking-form" onSubmit={submitBook}><div className="form-intro"><h3>Who will we welcome?</h3><p>Enter your contact details. Your confirmation and change ID will arrive by email.</p></div><div className="form-grid"><label>Full name<input required maxLength={100} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} autoComplete="name" /></label><label>Email address<input required type="email" maxLength={180} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} autoComplete="email" /></label><label>Phone number<input required type="tel" maxLength={30} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} autoComplete="tel" /></label></div><div className="form-footer"><span><ShieldCheck size={16} /> Your details are only used for this booking.</span><button className="button dark" disabled={busy || !isOpen(selected)}>{busy ? 'Reserving…' : <>Reserve this day <ArrowRight size={17} /></>}</button></div></form>}
       </>}
     </section>
 
     <aside className="exception-note"><div className="note-icon"><Clock3 size={18} /></div><div><b>A few special times</b><p>Most days: 4:00–4:30 pm · Mondays: 7:15–7:45 pm · Saturday, Nov 7: 10:00–10:30 am</p></div></aside>
-    <footer><span>With devotion, from ASP Temple <Heart size={16} fill="currentColor" /></span><span className="footer-contact">Questions? Contact Sriram at <strong>832-515-1251</strong></span></footer>
+    {footer}
   </main>;
 }

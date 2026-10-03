@@ -1,4 +1,4 @@
-const CFG = { sheet: 'Sheet1', title: 'Kartik Maas Nama Bhiksha 2026', start: '2026-10-25', end: '2026-11-24', tz: 'America/New_York', headers: ['confirmation_id','created_at','updated_at','status','name','email','phone','date','time'] };
+const CFG = { sheet: 'Sheet1', title: 'Kartik Maas Nama Bhiksha 2026', start: '2026-10-25', end: '2026-11-24', tz: 'America/New_York', headers: ['confirmation_id','created_at','updated_at','status','name','email','phone','date','time','street','city','state','zip_code','full_address','occasion','additional_notes'], legacyHeaders: ['confirmation_id','created_at','updated_at','status','name','email','phone','date','time'] };
 
 function doPost(e) {
   try {
@@ -13,10 +13,14 @@ function doPost(e) {
 
 function initializeBookingSheet() {
   const s = sheet_(), h = CFG.headers, current = s.getRange(1, 1, 1, h.length).getDisplayValues()[0];
-  if (current.some(String)) { if (current.join('|') !== h.join('|')) throw new Error('Sheet1 is not empty and its headers do not match.'); return 'Already initialized.'; }
-  s.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold').setBackground('#35684b').setFontColor('#ffffff');
+  if (current.some(String)) {
+    if (h.every((v, i) => current[i] === v)) return 'Already initialized.';
+    if (!CFG.legacyHeaders.every((v, i) => current[i] === v)) throw new Error('Sheet1 is not empty and its headers do not match.');
+    s.getRange(1, 1, 1, h.length).setValues([h]);
+  } else s.getRange(1, 1, 1, h.length).setValues([h]);
+  s.getRange(1, 1, 1, h.length).setFontWeight('bold').setBackground('#35684b').setFontColor('#ffffff');
   s.setFrozenRows(1); s.setColumnWidths(1, h.length, 145); s.setColumnWidth(5, 210); s.setColumnWidth(6, 230);
-  return 'Booking sheet initialized.';
+  return 'Booking sheet headers initialized or upgraded.';
 }
 
 function availability_() {
@@ -35,8 +39,8 @@ function book_(p) {
     const x = details_(p); validDate_(x.date);
     if (active_().some(r => String(r[7]) === x.date)) throw new Error('That date was just taken. Choose another available date.');
     const id = newId_(), now = new Date().toISOString(), time = time_(x.date);
-    b = { confirmationId: id, name: x.name, email: x.email, phone: x.phone, date: x.date, time: time, status: 'Active' };
-    sheet_().appendRow([id, now, now, 'Active', x.name, x.email, x.phone, x.date, time]);
+    b = Object.assign({ confirmationId: id }, x, { date: x.date, time: time, status: 'Active' });
+    sheet_().appendRow([id, now, now, 'Active', x.name, x.email, x.phone, x.date, time, x.street, x.city, x.state, x.zipCode, x.fullAddress, x.occasion, x.additionalNotes]);
   } finally { lock.releaseLock(); }
   mail_(b, 'New booking', 'confirmed'); return { booking: b, confirmationId: b.confirmationId };
 }
@@ -48,11 +52,11 @@ function update_(p) {
   let b;
   try {
     const found = find_(p), r = found.values;
-    const x = details_({ name: p.name || r[4], email: r[5], phone: p.phone || r[6], date: p.date || r[7] }); validDate_(x.date);
+    const x = details_({ name: p.name || r[4], email: r[5], phone: p.phone || r[6], date: p.date || r[7], street: p.street || r[9], city: p.city || r[10], state: p.state || r[11] || 'GA', zipCode: p.zipCode || r[12], occasion: p.occasion || r[14], additionalNotes: p.additionalNotes === undefined ? r[15] : p.additionalNotes }); validDate_(x.date);
     if (x.date !== String(r[7]) && active_().some(row => String(row[7]) === x.date)) throw new Error('That date is already taken. Choose another available date.');
     const time = time_(x.date);
-    sheet_().getRange(found.row, 3, 1, 7).setValues([[new Date().toISOString(), 'Active', x.name, x.email, x.phone, x.date, time]]);
-    b = { confirmationId: String(r[0]), name: x.name, email: x.email, phone: x.phone, date: x.date, time: time, status: 'Active' };
+    sheet_().getRange(found.row, 3, 1, 14).setValues([[new Date().toISOString(), 'Active', x.name, x.email, x.phone, x.date, time, x.street, x.city, x.state, x.zipCode, x.fullAddress, x.occasion, x.additionalNotes]]);
+    b = Object.assign({ confirmationId: String(r[0]) }, x, { date: x.date, time: time, status: 'Active' });
   } finally { lock.releaseLock(); }
   mail_(b, 'Booking updated', 'updated'); return { booking: b };
 }
@@ -79,29 +83,37 @@ function find_(p) {
   throw new Error('No active booking found. Check the confirmation ID and email.');
 }
 
-function booking_(r) { return { confirmationId: String(r[0]), name: String(r[4]), email: String(r[5]), phone: String(r[6]), date: String(r[7]), time: String(r[8]), status: String(r[3]) }; }
+function booking_(r) { return { confirmationId: String(r[0]), name: String(r[4]), email: String(r[5]), phone: String(r[6]), date: String(r[7]), time: String(r[8]), status: String(r[3]), street: String(r[9] || ''), city: String(r[10] || ''), state: String(r[11] || ''), zipCode: String(r[12] || ''), fullAddress: String(r[13] || ''), occasion: String(r[14] || ''), additionalNotes: String(r[15] || '') }; }
 function active_() { return sheet_().getDataRange().getValues().slice(1).filter(r => String(r[3]) === 'Active'); }
 function details_(p) {
-  const x = { name: String(p.name || '').trim().replace(/\s+/g, ' '), email: String(p.email || '').trim().toLowerCase(), phone: String(p.phone || '').trim(), date: String(p.date || '').trim() };
+  const x = { name: String(p.name || '').trim().replace(/\s+/g, ' '), email: String(p.email || '').trim().toLowerCase(), phone: String(p.phone || '').replace(/\D/g, ''), date: String(p.date || '').trim(), street: String(p.street || '').trim().replace(/\s+/g, ' '), city: String(p.city || '').trim().replace(/\s+/g, ' '), state: String(p.state || '').trim().toUpperCase(), zipCode: String(p.zipCode || '').trim(), fullAddress: '', occasion: String(p.occasion || '').trim().replace(/\s+/g, ' '), additionalNotes: String(p.additionalNotes || '').trim() };
   if (x.name.length < 2 || x.name.length > 100) throw new Error('Enter your name (2–100 characters).');
   if (x.email.length > 180 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.email)) throw new Error('Enter a valid email address.');
-  if (x.phone.length < 7 || x.phone.length > 30) throw new Error('Enter a valid phone number.'); return x;
+  if (!/^\d{10}$/.test(x.phone)) throw new Error('Enter a 10-digit phone number.');
+  if (x.street.length < 3 || x.street.length > 200) throw new Error('Enter a valid street address.');
+  if (x.city.length < 2 || x.city.length > 100) throw new Error('Enter a valid city.');
+  if (!['GA','AL','TN','NC','SC','FL'].includes(x.state)) throw new Error('Choose a valid state.');
+  if (!/^[A-Za-z0-9 -]{3,10}$/.test(x.zipCode)) throw new Error('Enter a valid ZIP code.');
+  if (!x.occasion || x.occasion.length > 120) throw new Error('Enter the occasion or reason for the visit.');
+  if (x.additionalNotes.length > 2000) throw new Error('Additional notes must be 2,000 characters or fewer.');
+  x.fullAddress = [x.street, x.city, x.state, x.zipCode].filter(Boolean).join(', ').replace(x.state + ', ', x.state + ' ');
+  return x;
 }
 function validDate_(s) { const d = new Date(s + 'T12:00:00'); if (!/^2026-\d{2}-\d{2}$/.test(s) || key_(d) !== s || s < CFG.start || s > CFG.end) throw new Error('Choose a valid date between October 25 and November 24, 2026.'); }
 function time_(s) { const d = new Date(s + 'T12:00:00'); return s === '2026-11-07' ? '10:00 AM – 10:30 AM' : d.getDay() === 1 ? '7:15 PM – 7:45 PM' : '4:00 PM – 4:30 PM'; }
 function mail_(b, event, action) {
   const props = PropertiesService.getScriptProperties();
-  const adminRecipients = (props.getProperty('ADMIN_NOTIFICATION_EMAILS') || props.getProperty('ADMIN_NOTIFICATION_EMAIL') || Session.getEffectiveUser().getEmail()).split(/[;,]/).map(email => email.trim()).filter(Boolean);
+  const adminRecipients = (props.getProperty('ADMIN_NOTIFICATION_EMAILS') || props.getProperty('ADMIN_NOTIFICATION_EMAIL') || 'sriram115@gmail.com,yuvadev1@godivinity.org').split(/[;,]/).map(email => email.trim()).filter(Boolean);
   const appUrl = props.getProperty('BOOKING_APP_URL') || '';
   const manageUrl = appUrl ? appUrl + '?confirmationId=' + encodeURIComponent(b.confirmationId) : '';
-  const detail = [event, '', 'Confirmation ID: ' + b.confirmationId, 'Name: ' + b.name, 'Email: ' + b.email, 'Phone: ' + b.phone, 'Date: ' + b.date, 'Time: ' + b.time, 'Status: ' + b.status].join('\n');
+  const detail = [event, '', 'Confirmation ID: ' + b.confirmationId, 'Name: ' + b.name, 'Email: ' + b.email, 'Phone: ' + b.phone, 'Street: ' + b.street, 'City: ' + b.city, 'State: ' + b.state, 'ZIP: ' + b.zipCode, 'Full address: ' + b.fullAddress, 'Occasion / reason: ' + b.occasion, 'Additional notes: ' + (b.additionalNotes || 'None'), 'Date: ' + b.date, 'Time: ' + b.time, 'Status: ' + b.status].join('\n');
   const button = manageUrl ? '<p><a style="display:inline-block;padding:11px 16px;background:#35684b;color:#fff;text-decoration:none;border-radius:8px" href="' + manageUrl + '">Open booking page</a></p>' : '';
   const safe = function (s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); };
-  const adminHtml = '<div style="font-family:Arial,sans-serif;color:#25312b"><h2>' + safe(event) + '</h2><p><b>Confirmation ID:</b> ' + safe(b.confirmationId) + '<br><b>Name:</b> ' + safe(b.name) + '<br><b>Email:</b> ' + safe(b.email) + '<br><b>Phone:</b> ' + safe(b.phone) + '<br><b>Date:</b> ' + safe(b.date) + '<br><b>Time:</b> ' + safe(b.time) + '<br><b>Status:</b> ' + safe(b.status) + '</p>' + button + '</div>';
+  const adminHtml = '<div style="font-family:Arial,sans-serif;color:#25312b"><h2>' + safe(event) + '</h2><p><b>Confirmation ID:</b> ' + safe(b.confirmationId) + '<br><b>Name:</b> ' + safe(b.name) + '<br><b>Email:</b> ' + safe(b.email) + '<br><b>Phone:</b> ' + safe(b.phone) + '<br><b>Home address:</b> ' + safe(b.fullAddress) + '<br><b>Occasion / reason:</b> ' + safe(b.occasion) + '<br><b>Additional notes:</b> ' + safe(b.additionalNotes || 'None') + '<br><b>Date:</b> ' + safe(b.date) + '<br><b>Time:</b> ' + safe(b.time) + '<br><b>Status:</b> ' + safe(b.status) + '</p>' + button + '</div>';
   try { if (adminRecipients.length) MailApp.sendEmail({ to: adminRecipients.join(','), subject: event + ': ' + b.date + ' · ' + CFG.title, body: detail, htmlBody: adminHtml }); } catch (err) { console.error('Admin notice failed: ' + err); }
   const intro = action === 'cancelled' ? 'Your booking has been cancelled.' : action === 'updated' ? 'Your booking is updated.' : 'Your Nama Bhiksha booking is confirmed.';
   const body = ['Radhe Radhe ' + b.name + ',', '', intro, '', 'Date: ' + Utilities.formatDate(new Date(b.date + 'T12:00:00'), CFG.tz, 'EEEE, MMMM d, yyyy'), 'Time: ' + b.time, 'Confirmation ID: ' + b.confirmationId, '', action === 'cancelled' ? 'The date is available again.' : 'Keep this ID and your booking email to change or cancel your booking.', '', 'Questions? Contact Sriram at 832-515-1251.', '', 'With devotion,', 'ASP Temple'].join('\n');
-  const guestHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;color:#25312b;line-height:1.6"><p>Radhe Radhe ' + safe(b.name) + ',</p><p>' + safe(intro) + '</p><p><b>Date:</b> ' + safe(Utilities.formatDate(new Date(b.date + 'T12:00:00'), CFG.tz, 'EEEE, MMMM d, yyyy')) + '<br><b>Time:</b> ' + safe(b.time) + '<br><b>Confirmation ID:</b> ' + safe(b.confirmationId) + '</p><p>' + (action === 'cancelled' ? 'The date is available again.' : 'Keep this ID and your booking email to change or cancel your booking.') + '</p>' + button + '<p>Questions? Contact Sriram at 832-515-1251.</p><p>With devotion,<br>ASP Temple</p></div>';
+  const guestHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;color:#25312b;line-height:1.6"><p>Radhe Radhe ' + safe(b.name) + ',</p><p>' + safe(intro) + '</p><p><b>Date:</b> ' + safe(Utilities.formatDate(new Date(b.date + 'T12:00:00'), CFG.tz, 'EEEE, MMMM d, yyyy')) + '<br><b>Time:</b> ' + safe(b.time) + '<br><b>Confirmation ID:</b> ' + safe(b.confirmationId) + '<br><b>Host address:</b> ' + safe(b.fullAddress) + '<br><b>Occasion / reason:</b> ' + safe(b.occasion) + '</p><p>' + (action === 'cancelled' ? 'The date is available again.' : 'Keep this ID and your booking email to change or cancel your booking.') + '</p>' + button + '<p>Questions? Contact Sriram at 832-515-1251.</p><p>With devotion,<br>ASP Temple</p></div>';
   try { MailApp.sendEmail({ to: b.email, subject: 'Nama Bhiksha booking ' + action + ' · ' + CFG.title, body: body, htmlBody: guestHtml }); } catch (err) { console.error('Confirmation email failed: ' + err); }
 }
 function newId_() { const a = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; let s = ''; for (let i = 0; i < 8; i++) s += a.charAt(Math.floor(Math.random() * a.length)); return s; }
