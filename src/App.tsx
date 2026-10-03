@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, CalendarDays, Check, Clock3, HandCoins, Heart, Leaf, LoaderCircle, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Clock3, Heart, Leaf, LoaderCircle, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
 import type { Booking, BookingDetails, Slot } from './types';
 
 type ApiResult = { ok: boolean; error?: string; slots?: Slot[]; booking?: Booking; confirmationId?: string; message?: string };
@@ -158,25 +158,6 @@ export default function App() {
         <h1>Kartik Maas<br /><em>Nama Bhiksha</em> 2026</h1>
         <p>Welcome Nama Bhiksha into your home. Choose a day for a 30-minute prayer and chanting session.</p>
         <div className="hero-meta"><span><CalendarDays size={16} /> Oct 25 – Nov 24</span><span><Clock3 size={16} /> One family each day</span></div>
-      </div>
-      <div className="hero-art" role="img" aria-label="The Mahamantra flowing like music toward a hand receiving a coin">
-        <svg className="mantra-art" viewBox="0 0 600 264" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <defs>
-            <path id="mantra-path-one" d="M 32 58 C 120 45, 218 49, 316 58" />
-            <path id="mantra-path-two" d="M 32 84 C 120 72, 218 76, 316 84" />
-            <path id="mantra-path-three" d="M 32 110 C 120 98, 218 102, 316 110" />
-            <path id="mantra-path-four" d="M 32 136 C 120 124, 218 128, 316 136" />
-          </defs>
-          <circle className="art-orbit" cx="300" cy="131" r="104" />
-          <circle className="art-orbit inner" cx="300" cy="131" r="78" />
-          <path className="music-staff" d="M31 60 C120 47 218 51 317 60 M31 86 C120 73 218 77 317 86 M31 112 C120 99 218 103 317 112 M31 138 C120 125 218 129 317 138" />
-          <text className="mantra-copy"><textPath href="#mantra-path-one">Hare Rama Hare Rama</textPath></text>
-          <text className="mantra-copy second"><textPath href="#mantra-path-two">Rama Rama Hare Hare</textPath></text>
-          <text className="mantra-copy"><textPath href="#mantra-path-three">Hare Krishna Hare Krishna</textPath></text>
-          <text className="mantra-copy second"><textPath href="#mantra-path-four">Krishna Krishna Hare Hare</textPath></text>
-          <text className="music-note" x="70" y="162">♪</text><text className="music-note note-two" x="289" y="57">♫</text>
-        </svg>
-        <HandCoins className="receiving-hand-icon" aria-hidden="true" />
       </div>
     </section>
 
