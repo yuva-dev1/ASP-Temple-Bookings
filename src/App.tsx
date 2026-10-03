@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, CalendarDays, Check, Clock3, Heart, Leaf, LoaderCircle, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Clock3, HandCoins, Heart, Leaf, LoaderCircle, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
 import type { Booking, BookingDetails, Slot } from './types';
 
 type ApiResult = { ok: boolean; error?: string; slots?: Slot[]; booking?: Booking; confirmationId?: string; message?: string };
@@ -166,7 +166,6 @@ export default function App() {
             <path id="mantra-path-two" d="M 32 84 C 120 72, 218 76, 316 84" />
             <path id="mantra-path-three" d="M 32 110 C 120 98, 218 102, 316 110" />
             <path id="mantra-path-four" d="M 32 136 C 120 124, 218 128, 316 136" />
-            <linearGradient id="hand-tone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#b77c57" /><stop offset="1" stopColor="#986344" /></linearGradient>
           </defs>
           <circle className="art-orbit" cx="300" cy="131" r="104" />
           <circle className="art-orbit inner" cx="300" cy="131" r="78" />
@@ -176,14 +175,8 @@ export default function App() {
           <text className="mantra-copy"><textPath href="#mantra-path-three">Hare Krishna Hare Krishna</textPath></text>
           <text className="mantra-copy second"><textPath href="#mantra-path-four">Krishna Krishna Hare Hare</textPath></text>
           <text className="music-note" x="70" y="162">♪</text><text className="music-note note-two" x="289" y="57">♫</text>
-          <ellipse className="coin-shadow" cx="353" cy="151" rx="23" ry="6" />
-          <ellipse className="offering-coin" cx="353" cy="132" rx="24" ry="11" transform="rotate(-28 353 132)" />
-          <path className="coin-mark" d="M347 133q6-9 12-5m-10 11q6 4 12-5" />
-          <path className="receiving-hand" d="M600 145 503 145c-23 0-39-4-58-12l-57-23c-13-5-24 1-21 11 1 5 5 9 12 12l42 19-58-14c-14-3-22 8-14 18 3 4 7 5 14 7l59 14-44-2c-14-1-20 12-7 20l49 19c22 9 43 10 67 4l113-20z" />
-          <path className="hand-crease" d="M414 153q26 13 56 17m-66 1q28 13 57 15m35-39q18 7 34 5" />
-          <path className="mantra-trail" d="M322 124c18 6 27 13 39 21" />
         </svg>
-        <div className="art-caption"><span>♪</span> The Mahamantra, carried as music</div>
+        <HandCoins className="receiving-hand-icon" aria-hidden="true" />
       </div>
     </section>
 
