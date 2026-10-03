@@ -1,0 +1,5 @@
+#!include:.gitignore
+.playwright-cli/
+/code-source.html
+/code-source.txt
+/output/
