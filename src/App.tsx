@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, CalendarDays, Check, Clock3, Heart, Leaf, LoaderCircle, Mail, MapPin, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Clock3, Heart, Leaf, LoaderCircle, Phone, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
 import type { Booking, BookingDetails, Slot } from './types';
 
 type ApiResult = { ok: boolean; error?: string; slots?: Slot[]; booking?: Booking; confirmationId?: string; message?: string };
@@ -159,10 +159,29 @@ export default function App() {
         <p>Welcome Nama Bhiksha into your home. Choose a day for a 30-minute prayer and chanting session.</p>
         <div className="hero-meta"><span><CalendarDays size={16} /> Oct 25 – Nov 24</span><span><Clock3 size={16} /> One family each day</span></div>
       </div>
-      <div className="hero-art" aria-label="Decorative illustration of a diya lamp"><div className="sun-halo"></div><div className="sun-ring"></div><div className="diya"><span className="flame"></span><span className="diya-bowl"></span><span className="diya-base"></span></div><div className="art-caption"><span>ॐ</span> A moment of devotion, shared</div></div>
+      <div className="hero-art" role="img" aria-label="The Mahamantra flowing like music toward a hand receiving a coin">
+        <svg className="mantra-art" viewBox="0 0 600 264" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <defs>
+            <path id="mantra-path-one" d="M 45 77 C 120 20, 235 29, 319 81" />
+            <path id="mantra-path-two" d="M 38 119 C 136 70, 236 77, 329 122" />
+            <linearGradient id="hand-tone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#b77c57" /><stop offset="1" stopColor="#986344" /></linearGradient>
+          </defs>
+          <circle className="art-orbit" cx="300" cy="131" r="104" />
+          <circle className="art-orbit inner" cx="300" cy="131" r="78" />
+          <path className="music-staff" d="M39 83 C126 23 230 34 320 85 M40 126 C134 78 236 81 328 126" />
+          <text className="mantra-copy"><textPath href="#mantra-path-one">Hare Rama Hare Rama Rama Rama Hare Hare</textPath></text>
+          <text className="mantra-copy second"><textPath href="#mantra-path-two">Hare Krishna Hare Krishna Krishna Krishna Hare Hare</textPath></text>
+          <text className="music-note" x="70" y="162">♪</text><text className="music-note note-two" x="289" y="57">♫</text>
+          <ellipse className="coin-shadow" cx="353" cy="151" rx="23" ry="6" />
+          <ellipse className="offering-coin" cx="353" cy="132" rx="24" ry="11" transform="rotate(-28 353 132)" />
+          <path className="coin-mark" d="M347 133q6-9 12-5m-10 11q6 4 12-5" />
+          <path className="receiving-hand" d="M600 145 503 145c-23 0-39-4-58-12l-57-23c-13-5-24 1-21 11 1 5 5 9 12 12l42 19-58-14c-14-3-22 8-14 18 3 4 7 5 14 7l59 14-44-2c-14-1-20 12-7 20l49 19c22 9 43 10 67 4l113-20z" />
+          <path className="hand-crease" d="M414 153q26 13 56 17m-66 1q28 13 57 15m35-39q18 7 34 5" />
+          <path className="mantra-trail" d="M322 124c18 6 27 13 39 21" />
+        </svg>
+        <div className="art-caption"><span>♪</span> The Mahamantra, carried as music</div>
+      </div>
     </section>
-
-    <section className="details-strip" aria-label="Booking details"><div><span className="detail-icon"><Clock3 size={18} /></span><span><b>30 minutes</b><small>One booking per day</small></span></div><div><span className="detail-icon"><MapPin size={18} /></span><span><b>At your home</b><small>Choose any available day</small></span></div><div><span className="detail-icon"><Mail size={18} /></span><span><b>Confirmation by email</b><small>Includes your change ID</small></span></div></section>
 
     <section className="booking-area" id="book">
       <div className="booking-heading"><div><span className="section-number">01 / SELECT A DAY</span><h2>Find your moment</h2><p>Choose an open date to see its available prayer time.</p></div><button className={`manage-toggle ${mode === 'manage' ? 'active' : ''}`} onClick={() => { setMode(mode === 'book' ? 'manage' : 'book'); setError(''); setSuccess(''); setBooking(null); }}>Manage a booking <ArrowRight size={16} /></button></div>
